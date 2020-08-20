@@ -1,2 +1,3 @@
 # BGApredictor
 BGApredictor (BioGeographical Ancestry Predictor) incorporates an intuitive interface able to perform several multivariate data analysis tests, including PCA, PLS-DA, SVM, and likelihood ratio calculation, starting from genetic polymorphic markers. This open-source and free-of-charge application may represent a powerful and dynamic tool to infer, at the current stage, BGA from autosomal STRs data. Future implementations will allow the application of MDA strategies on additional genetic markers (such as Y-STRs, SNPs and microhaplotypes).
+The updated version of the tool is currently available at https://bgapredictor.shinyapps.io/BGApredictor/
