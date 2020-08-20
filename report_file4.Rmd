@@ -1,0 +1,272 @@
+---
+title: 'BGA Prediction - Multivariate Data Analysis'
+author: 'S.Ten. Eugenio Alladio'
+date: 
+output: pdf_document
+params:
+  plot_logpca: 'NULL'
+  prova1_logpca: 'NULL'
+  prova2_logpca: 'NULL'
+header-includes:
+  - \usepackage{fancyhdr}
+---
+
+\addtolength{\headheight}{1.0cm}  
+\pagestyle{fancyplain} 
+\rhead{\includegraphics[height=1.2cm]{C:/Users/eugen/Documents/Racis/RIS_Roma/Sez_Biologia/App_etnia/BGA_PREDICTION/image_3.png}} 
+\lhead{\includegraphics[height=1.2cm]{C:/Users/eugen/Documents/Racis/RIS_Roma/Sez_Biologia/App_etnia/BGA_PREDICTION/image_1.png}} 
+\chead{\includegraphics[height=1.2cm]{C:/Users/eugen/Documents/Racis/RIS_Roma/Sez_Biologia/App_etnia/BGA_PREDICTION/image_2.png}}
+\renewcommand{\headrulewidth}{0pt} 
+
+
+# Logistic PCA Model
+<br/><br/>
+The subject **`r levels(as.factor(params$prova1_logpca$Name))`** under analysis is remarked by a \textcolor{orange}{orange triangle} in the PCA Scores Plot reported below:
+<br/><br/>
+
+
+```{r, echo=FALSE}
+params[["plot_logpca"]]
+# a = levels(as.factor(params$prova1$Name))
+# as.character(a)
+```
+\pagebreak
+
+# Likelihood Ratio calculation
+<br/><br/>
+The subject **`r levels(as.factor(params$prova1_logpca$Name))`** provides the following *likelihood ratio* values for the tested populations:
+<br/><br/>
+
+```{r, echo=FALSE}
+dat_pca_pred = params$prova1_logpca
+allComparisons = params$prova2_logpca
+LR_from_logPCA = function(allComparisons){
+                data = dat_pca_pred
+                population = allComparisons
+                
+                category.1.name = unique(population$Factor)[1]
+                category.2.name = unique(population$Factor)[2]
+                categories = paste(unique(population$Factor), collapse = "_")
+                
+                ##In the 'variables' it is necessary to enter the index of the column in the univariate problem (or columns in the multivariate problem) for the relevant variable(s)
+                variables = seq(from=4,to=ncol(population),by=1) ##ENTER THE NUMBER OF THE COLUMN(S) THE RELEVANT VARIABLE(S) IS (ARE) LOCATED IN, E.G. 4 FOR UNIVARIATE OR 4,5 FOR MULTIVARIATE MODELS
+                variables.names = colnames(population[variables])
+                variable.name = paste(variables.names, collapse = "_")
+                m.all.analysed = length(unique(data$Item)) ##'m.all.analysed' corresponds to the number of all objects subjected to calculations
+                p = length(variables) ##number of variables considered; gives the idea of the problem dimensionality
+                n = length(unique(population$Piece)) ##number of measurements per object
+                
+                ##'population.1' and 'population.2' refer to the populations of objects belonging to category 1 and 2 respectively
+                population.1 = population[which(population$Factor == category.1.name),]
+                population.2 = population[which(population$Factor == category.2.name),]
+                
+                UC.1 = function(population.1, variables, p)
+                {
+                    items.1 = unique(population.1$Item)
+                    m.1 = length(items.1) ##'m.1' corresponds to the number of objects creating population.1
+                    
+                    ##Defining 'S.star' matrix initially filled with 0 at the beginning of the loops
+                    S.star.1 = matrix(0, nrow = p, ncol = p)
+                    variable.names = colnames(population.1[,variables])
+                    rownames(S.star.1) = variable.names
+                    colnames(S.star.1) = variable.names
+                    
+                    ##Dealing with multivariate data (p>1)
+                    if (p>1)
+                    {
+                        ##'mean.all.1' corresponds to the vector of means of all variables calculated using all measurements for all objects belonging to category 1
+                        mean.all.1 = matrix(apply(population.1[,variables],2,mean), nrow = 1)
+                        colnames(mean.all.1) = variable.names
+                        
+                        ##'i' runs through all objects from the population.1
+                        for (i in 1:m.1)
+                        {
+                            ##creating a matrix of measurements for the ith object
+                            ith.object.1 = as.matrix(population.1[which(population.1$Item == items.1[i]),variables])
+                            
+                            ##calculating the mean for each object from category 1
+                            object.mean.1 = matrix(apply(ith.object.1,2,mean), nrow = 1)
+                            
+                            S.star.1 = S.star.1 + t(object.mean.1-mean.all.1) %*% (object.mean.1-mean.all.1)				
+                        }
+                        
+                        ##creating 'C' matrix		
+                        C.1 = S.star.1/(m.1-1)
+                    }
+                    
+                    ##Dealing with univariate data (p=1)
+                    if (p==1)
+                    {
+                        mean.all.1 = matrix(mean(population.1[,variables], nrow = 1))
+                        colnames(mean.all.1) = variable.names
+                        
+                        for (i in 1:m.1)
+                        {
+                            ith.object.1 = as.matrix(population.1[which(population.1$Item == items.1[i]),variables])
+                            object.mean.1 = matrix(mean(ith.object.1), nrow = 1)
+                            
+                            S.star.1 = S.star.1 + t(object.mean.1-mean.all.1) %*% (object.mean.1-mean.all.1)
+                        }
+                        
+                        C.1 = S.star.1/(m.1-1)
+                    }
+                    
+                    result = list(C.1 = C.1, mean.all.1 = mean.all.1, object.mean.1 = object.mean.1, m.1 = m.1)
+                    return (result)
+                }
+                
+                UC.2 = function(population.2,variables, p)
+                {
+                    items.2 = unique(population.2$Item)
+                    m.2 = length(items.2) ##'m.2' corresponds to the number of objects creating population.2
+                    
+                    ##Defining 'S.star' matrix initially filled with 0 at the beginning of the loops
+                    S.star.2 = matrix(0, nrow = p, ncol = p)
+                    variable.names = colnames(population.2[,variables])
+                    rownames(S.star.2) = variable.names
+                    colnames(S.star.2) = variable.names
+                    
+                    ##Dealing with multivariate data (p>1)
+                    if (p>1)
+                    {
+                        ##'mean.all.2' corresponds to the vector of means of all variables calculated using all measurements for all objects belonging to category 2
+                        mean.all.2 = matrix(apply(population.2[,variables],2,mean), nrow = 1)
+                        colnames(mean.all.2) = variable.names
+                        
+                        ##'i' runs through all objects from the population.2
+                        for (i in 1:m.2)
+                        {
+                            ##creating a matrix of measurements for the ith object
+                            ith.object.2 = as.matrix(population.2[which(population.2$Item == items.2[i]),variables])
+                            
+                            ##calculating the mean for each object from category 2
+                            object.mean.2 = matrix(apply(ith.object.2,2,mean),nrow = 1)
+                            
+                            S.star.2 = S.star.2 + t(object.mean.2-mean.all.2) %*% (object.mean.2-mean.all.2)				
+                        }
+                        
+                        ##creating 'C' matrix		
+                        C.2 = S.star.2/(m.2-1)
+                    }
+                    
+                    ##Dealing with univariate data (p=1)
+                    if (p==1)
+                    {
+                        mean.all.2 = matrix(mean(population.2[,variables], nrow = 1))
+                        colnames(mean.all.2) = variable.names
+                        
+                        for (i in 1:m.2)
+                        {
+                            ith.object.2 = as.matrix(population.2[which(population.2$Item == items.2[i]),variables])
+                            object.mean.2 = matrix(mean(ith.object.2), nrow = 1)
+                            
+                            S.star.2 = S.star.2 + t(object.mean.2-mean.all.2) %*% (object.mean.2-mean.all.2)
+                        }
+                        
+                        C.2 = S.star.2/(m.2-1)
+                    }
+                    
+                    result = list(C.2 = C.2, mean.all.2 = mean.all.2, object.mean.2 = object.mean.2, m.2 = m.2)
+                    return (result)
+                }
+                
+                LR.KDE.function = function(population.1, population.2, variables, y.mean, U.1, U.2, C.1, C.2, h.1, h.2, p, m.1, m.2)
+                {
+                    ##Numerator calculation
+                    nom1 = 0
+                    
+                    ##'i' runs through all objects from the population.1
+                    for(i in 1:m.1)
+                    {
+                        items.1 = unique(population.1$Item)
+                        
+                        ##creating a matrix of measurements for the ith object
+                        ith.object.1 = as.matrix(population.1[which(population.1$Item == items.1[i]),variables])
+                        
+                        ##calculating the 'object.mean.1'
+                        object.mean.1 = matrix(apply(ith.object.1,2,mean), nrow = 1)
+                        
+                        exp.1.1 = exp(-(y.mean-object.mean.1) %*% solve(h.1^2*C.1) %*% t(y.mean-object.mean.1)/2)
+                        
+                        nom1 = nom1 + exp.1.1
+                    }
+                    
+                    nom2 = nom1/m.1
+                    
+                    exp.1.2 = (2*pi)^(-p/2) * (det(C.1*h.1^2))^(-1/2)
+                    
+                    nom = nom2*exp.1.2
+                    
+                    ##Denominator calculation
+                    denom1 = 0
+                    
+                    for(i in 1:m.2)
+                    {
+                        items.2 = unique(population.2$Item)
+                        ith.object.2 = as.matrix(population.2[which(population.2$Item == items.2[i]),variables])
+                        object.mean.2 = matrix(apply(ith.object.2,2,mean), nrow = 1)
+                        
+                        exp.2.1 = exp(-(y.mean-object.mean.2) %*% solve(h.2^2*C.2) %*% t(y.mean-object.mean.2)/2)
+                        
+                        denom1 = denom1 + exp.2.1
+                    }	
+                    
+                    denom2 = denom1/m.2
+                    
+                    exp.2.2 = (2*pi)^(-p/2) * (det(C.2*h.2^2))^(-1/2)
+                    denom = denom2*exp.2.2
+                    
+                    LR.KDE = nom/denom
+                    
+                    result = list(LR.KDE = LR.KDE)
+                    return (result)
+                }
+                
+                
+                ##'UC' function provides information on within- (U) and between- (C) object variability matrices
+                results.UC.1 = UC.1(population.1, variables, p) 
+                U.1 = results.UC.1$U.1
+                C.1 = results.UC.1$C.1
+                mean.all.1 = results.UC.1$mean.all.1 ##mean of all measurements performed on all objects from population.1
+                m.1 = results.UC.1$m.1 ##number of objects in population.1
+                
+                results.UC.2 = UC.2(population.2, variables, p) 
+                U.2 = results.UC.2$U.2
+                C.2 = results.UC.2$C.2
+                mean.all.2 = results.UC.2$mean.all.2
+                m.2 = results.UC.2$m.2
+                
+                ##Calculating smoothing parameters ('h.1' and 'h.2') as bandwidths for KDE procedure
+                h.1 = (4/(m.1*(2*p+1)))^(1/(p+4))
+                h.2 = (4/(m.2*(2*p+1)))^(1/(p+4))
+                
+                ##Defining matrices of LR results which are to be saved in a .txt file
+                output.matrix.KDE = matrix(0, ncol = 2, nrow = m.all.analysed)
+                rownames(output.matrix.KDE) = unique(data$Name)
+                colnames(output.matrix.KDE) = c(paste("LR_PCA","_value", sep=""), paste("Population_",category.1.name,sep=""))
+                
+                ##'i' index runs through all the objects denoted by 'analysed.object'
+                for (i in 1:m.all.analysed)
+                {
+                    analysed.object = data[which(data$Item == i),]	
+                    
+                    ##Calculating parameters for the 'analysed.object', which is to be classified
+                    y = data.frame(analysed.object[,variables])
+                    y.mean = matrix(apply(y,2,mean), nrow = 1) ##mean for the analysed object
+                    
+                    ##Calculating the LR when between-object distribution is estimated by KDE		
+                    results.LR.KDE = LR.KDE.function(population.1, population.2, variables, y.mean, U.1, U.2, C.1, C.2, h.1, h.2, p, m.1, m.2)
+                    LR.KDE = results.LR.KDE$LR.KDE
+                    
+                    ##Filling 'output.matrix.KDE' with LR results
+                    output.matrix.KDE[i,1] = signif(LR.KDE, digits = 4)	
+                    if (LR.KDE > 1) {output.matrix.KDE[i,2] = as.character(category.1.name)} 
+                    else {output.matrix.KDE[i,2] = as.character(category.2.name)}
+                    
+                }	
+                output.matrix.KDE <<- output.matrix.KDE
+                #print(output.matrix.KDE)
+            }
+lapply(allComparisons,FUN = LR_from_logPCA)
+```
+

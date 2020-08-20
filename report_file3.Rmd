@@ -1,0 +1,53 @@
+---
+title: 'BGApredictor Report'
+author: 'Operator/Analyst: Name Surname'
+date: 
+output: pdf_document
+params:
+  plotSVM1: 'NULL'
+  plotSVM2: 'NULL'
+  prova1SVM: 'NULL'
+  prova2SVM: 'NULL'
+  prova3SVM: 'NULL'
+  
+always_allow_html: true
+header-includes:
+  - \usepackage{fancyhdr}
+---
+
+\addtolength{\headheight}{1.0cm}  
+\pagestyle{fancyplain} 
+\rhead{\includegraphics[height=1.2cm]{C:/Users/eugen/Documents/Racis/RIS_Roma/Sez_Biologia/App_etnia/App_articolo/image_2.png}} 
+\lhead{\includegraphics[height=1.2cm]{C:/Users/eugen/Documents/Racis/RIS_Roma/Sez_Biologia/App_etnia/App_articolo/image_1.png}} 
+\renewcommand{\headrulewidth}{0pt} 
+
+
+# Support Vector Machines (SVM) Model
+<br/><br/>
+The SVM model that has been calculated on the tested reference populations, before evaluating the subject **`r rownames(params$prova1SVM)`**, provided the following classification results:
+<br/><br/>
+
+```{r, echo=FALSE}
+params[["plotSVM1"]]
+```
+
+
+The classification of the subject **`r rownames(params$prova1SVM)`** showed the following SVM prediction values:
+<br/><br/>
+
+```{r, echo=FALSE}
+params[["plotSVM2"]]
+```
+
+\pagebreak
+
+# Summary of the results
+<br/><br/>
+The subject **`r rownames(params$prova1SVM)`** has been classified, as follows:
+<br/><br/>
+
+```{r, echo=FALSE}
+params[["prova1SVM"]]
+params[["prova2SVM"]]
+```
+
